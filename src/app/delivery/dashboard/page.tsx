@@ -6,6 +6,7 @@ import Link from 'next/link';
 import OrderCard from '../components/OrderCard';
 import CircularProgress from '../components/CircularProgress';
 import { Order, DeliveryAgent } from '@/types';
+import { CheckCircle, Truck, XCircle } from 'lucide-react';
 
 export default function DashboardPage() {
     const [orders, setOrders] = useState<(Order & { total_items: number })[]>([]);
@@ -83,6 +84,7 @@ export default function DashboardPage() {
                                 label="Orders Accepted"
                                 color="#3b82f6"
                                 size={140}
+                                icon={CheckCircle}
                             />
                         </div>
                         <div className="card flex items-center justify-center py-8">
@@ -92,6 +94,7 @@ export default function DashboardPage() {
                                 label="Orders Delivered"
                                 color="#22c55e"
                                 size={140}
+                                icon={Truck}
                             />
                         </div>
                         <div className="card flex items-center justify-center py-8">
@@ -101,6 +104,7 @@ export default function DashboardPage() {
                                 label="Orders Ignored"
                                 color="#f59e0b"
                                 size={140}
+                                icon={XCircle}
                             />
                         </div>
                     </div>
