@@ -22,69 +22,62 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: 'Agent profile not found' }, { status: 403 });
         }
 
-        // Get all accepted orders (not yet delivered) for this agent
-        const { data: assignments, error: assignmentError } = await supabase
-            .from('order_delivery_assignments')
-            .select('order_id, assigned_at')
-            .eq('delivery_boy_id', agent.id);
+        // Get assigned orders directly from the orders table
+        // This replaces the query to order_delivery_assignments which was missing data
+        const { data: orders, error } = await supabase
+            .from('orders')
+            .select(`
+                id,
+                total_amount,
+                shipping_address,
+                status,
+                created_at,
+                assigned_at,
+                order_items (
+                    quantity
+                )
+            `)
+            .eq('assigned_to_delivery_boy_id', agent.id)
+            .in('status', ['ASSIGNED', 'ACCEPTED_FOR_DELIVERY', 'OUT_FOR_DELIVERY', 'PENDING_DELIVERY'])
+            .order('assigned_at', { ascending: false, nullsFirst: false })
+            .order('created_at', { ascending: false });
 
-        if (assignmentError) throw assignmentError;
+        if (error) throw error;
 
-        if (!assignments || assignments.length === 0) {
+        if (!orders || orders.length === 0) {
             return NextResponse.json({ orders: [] });
         }
 
-        const orderIds = assignments.map(a => a.order_id);
-
-        // Fetch orders with status ACCEPTED_FOR_DELIVERY or OUT_FOR_DELIVERY
-        const { data: orders, error: ordersError } = await supabase
-            .from('orders')
-            .select('*')
-            .in('id', orderIds)
-            .in('status', ['ACCEPTED_FOR_DELIVERY', 'OUT_FOR_DELIVERY'])
-            .order('created_at', { ascending: false });
-
-        if (ordersError) throw ordersError;
-
-        // Get item counts and calculate totals for each order
-        const ordersWithItems = await Promise.all(
-            (orders || []).map(async (order) => {
-                const { data: items } = await supabase
-                    .from('order_items')
-                    .select('quantity, price_at_purchase')
-                    .eq('order_id', order.id);
-
-                const assignment = assignments.find(a => a.order_id === order.id);
-
-                // Calculate total price from items
-                const totalPrice = items?.reduce((sum, item) =>
-                    sum + (item.price_at_purchase * item.quantity), 0) || 0;
-
-                // Parse address
-                let addressStr = 'No address provided';
-                if (order.shipping_address) {
-                    if (typeof order.shipping_address === 'string') {
-                        addressStr = order.shipping_address;
-                    } else if (typeof order.shipping_address === 'object') {
-                        const { street, city, state, zip, address_line1 } = order.shipping_address;
-                        const parts = [street || address_line1, city, state, zip].filter(Boolean);
-                        addressStr = parts.length > 0 ? parts.join(', ') : JSON.stringify(order.shipping_address);
-                    }
+        // Process result
+        const processedOrders = orders.map((order: any) => {
+            // Safe address parsing
+            let addressStr = 'No address provided';
+            if (order.shipping_address) {
+                if (typeof order.shipping_address === 'string') {
+                    addressStr = order.shipping_address;
+                } else if (typeof order.shipping_address === 'object') {
+                    const { street, city, state, zip, address_line1 } = order.shipping_address;
+                    const parts = [street || address_line1, city, state, zip].filter(Boolean);
+                    addressStr = parts.length > 0 ? parts.join(', ') : JSON.stringify(order.shipping_address);
                 }
+            }
 
-                return {
-                    id: order.id,
-                    total_price: totalPrice,
-                    delivery_address: addressStr,
-                    status: order.status,
-                    created_at: order.created_at,
-                    total_items: items?.length || 0,
-                    assigned_at: assignment?.assigned_at
-                };
-            })
-        );
+            // Calculate total items
+            const totalItems = order.order_items?.reduce((sum: number, item: any) => sum + item.quantity, 0) || 0;
 
-        return NextResponse.json({ orders: ordersWithItems });
+            return {
+                id: order.id,
+                total_price: order.total_amount,
+                delivery_address: addressStr,
+                status: order.status,
+                created_at: order.created_at,
+                total_items: totalItems,
+                assigned_at: order.assigned_at || order.created_at // Fallback
+            };
+        });
+
+        return NextResponse.json({ orders: processedOrders });
+
     } catch (error: any) {
         console.error('Fetch accepted orders error:', error);
         return NextResponse.json(

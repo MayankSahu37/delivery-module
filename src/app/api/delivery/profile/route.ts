@@ -27,23 +27,23 @@ export async function GET(request: Request) {
         // Fetch statistics
         // Total accepted orders
         const { count: totalAccepted } = await supabase
-            .from('order_delivery_assignments')
+            .from('orders')
             .select('*', { count: 'exact', head: true })
-            .eq('delivery_boy_id', agentId);
+            .eq('assigned_to_delivery_boy_id', agentId);
 
         // Delivered orders
         const { count: totalDelivered } = await supabase
-            .from('order_delivery_assignments')
-            .select('order_id, orders!inner(status)', { count: 'exact', head: true })
-            .eq('delivery_boy_id', agentId)
-            .eq('orders.status', 'DELIVERED');
+            .from('orders')
+            .select('*', { count: 'exact', head: true })
+            .eq('assigned_to_delivery_boy_id', agentId)
+            .eq('status', 'DELIVERED');
 
         // Active deliveries (accepted or out for delivery)
         const { count: activeDeliveries } = await supabase
-            .from('order_delivery_assignments')
-            .select('order_id, orders!inner(status)', { count: 'exact', head: true })
-            .eq('delivery_boy_id', agentId)
-            .in('orders.status', ['ACCEPTED_FOR_DELIVERY', 'OUT_FOR_DELIVERY']);
+            .from('orders')
+            .select('*', { count: 'exact', head: true })
+            .eq('assigned_to_delivery_boy_id', agentId)
+            .in('status', ['ACCEPTED_FOR_DELIVERY', 'OUT_FOR_DELIVERY', 'ASSIGNED', 'PENDING_DELIVERY']);
 
         // Ignored orders count
         const { count: ignoredCount } = await supabase

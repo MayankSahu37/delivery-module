@@ -28,17 +28,23 @@ export async function POST(
         const { orderId } = await params;
 
         // Verify the order is assigned to this agent
-        const { data: assignment, error: assignmentError } = await supabase
-            .from('order_delivery_assignments')
-            .select('*')
-            .eq('order_id', orderId)
-            .eq('delivery_boy_id', agent.id)
+        const { data: order, error: fetchError } = await supabase
+            .from('orders')
+            .select('id, assigned_to_delivery_boy_id')
+            .eq('id', orderId)
             .single();
 
-        if (assignmentError || !assignment) {
+        if (fetchError || !order) {
             return NextResponse.json(
-                { error: 'Order not found or not assigned to you' },
+                { error: 'Order not found' },
                 { status: 404 }
+            );
+        }
+
+        if (order.assigned_to_delivery_boy_id !== agent.id) {
+            return NextResponse.json(
+                { error: 'Order not assigned to you' },
+                { status: 403 }
             );
         }
 

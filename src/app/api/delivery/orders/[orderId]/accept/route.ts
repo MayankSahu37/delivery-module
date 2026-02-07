@@ -56,7 +56,11 @@ export async function POST(
         // Try to update orders status where status is still paid
         const { data: updatedOrder, error: updateError } = await supabase
             .from('orders')
-            .update({ status: 'ACCEPTED_FOR_DELIVERY' })
+            .update({
+                status: 'ACCEPTED_FOR_DELIVERY',
+                assigned_to_delivery_boy_id: agentId,
+                assigned_at: new Date().toISOString()
+            })
             .eq('id', orderId)
             .eq('status', 'paid') // strictly check again
             .select()
@@ -65,24 +69,6 @@ export async function POST(
         if (updateError || !updatedOrder) {
             // If update returns nothing, it means race condition hit (status changed meanwhile)
             return NextResponse.json({ error: 'Could not accept order (maybe already taken)' }, { status: 409 });
-        }
-
-        // 3. Create Assignment Record
-        const { error: assignError } = await supabase
-            .from('order_delivery_assignments')
-            .insert({
-                order_id: orderId,
-                delivery_boy_id: agentId
-            });
-
-        if (assignError) {
-            // Critical error: order updated but assignment failed. 
-            // Rollback logic (manual) would go here, or assume DB constraints prevent this (order_id unique in assignments)
-            // If assignment fails, we should probably revert the order status.
-            // For now, let's log.
-            console.error('Assignment failed, reverting order status...', assignError);
-            await supabase.from('orders').update({ status: 'paid' }).eq('id', orderId);
-            return NextResponse.json({ error: 'Failed to assign order' }, { status: 500 });
         }
 
         return NextResponse.json({ success: true });

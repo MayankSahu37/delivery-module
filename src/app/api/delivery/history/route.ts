@@ -25,38 +25,30 @@ export async function GET(request: Request) {
         const agentId = agent.id;
 
         // Fetch all orders assigned to this delivery agent
-        // Join with order_delivery_assignments to get only this agent's orders
-        const { data: assignments, error: assignError } = await supabase
-            .from('order_delivery_assignments')
+        const { data: orders, error } = await supabase
+            .from('orders')
             .select(`
                 id,
+                total_amount,
+                shipping_address,
+                status,
+                created_at,
                 assigned_at,
-                order_id,
-                orders (
-                    id,
-                    total_amount,
-                    shipping_address,
-                    status,
-                    created_at,
-                    order_items (
-                        quantity,
-                        price:price_at_purchase
-                    )
+                order_items (
+                    quantity,
+                    price:price_at_purchase
                 )
             `)
-            .eq('delivery_boy_id', agentId)
-            .order('assigned_at', { ascending: false });
+            .eq('assigned_to_delivery_boy_id', agentId)
+            .order('assigned_at', { ascending: false, nullsFirst: false })
+            .order('created_at', { ascending: false });
 
-        if (assignError) {
-            throw assignError;
+        if (error) {
+            throw error;
         }
 
         // Process the results
-        const processedOrders = (assignments || []).map((assignment: any) => {
-            const order = assignment.orders;
-
-            if (!order) return null;
-
+        const processedOrders = (orders || []).map((order: any) => {
             // Safe address parsing
             let addressStr = 'No address provided';
             if (order.shipping_address) {
@@ -85,10 +77,10 @@ export async function GET(request: Request) {
                 delivery_address: addressStr,
                 status: order.status,
                 created_at: order.created_at,
-                assigned_at: assignment.assigned_at,
+                assigned_at: order.assigned_at,
                 total_items: order.order_items?.reduce((sum: number, item: any) => sum + item.quantity, 0) || 0
             };
-        }).filter(Boolean); // Remove any null entries
+        });
 
         return NextResponse.json({ orders: processedOrders });
 
