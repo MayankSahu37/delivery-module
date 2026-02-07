@@ -64,86 +64,84 @@ export default function DashboardPage() {
     }
 
     return (
-        <div className="min-h-screen bg-muted/10">
-            <div className="container py-8">
-                {/* Welcome Header */}
-                {agent && (
-                    <div className="mb-8 animate-fade-in">
-                        <h1 className="text-4xl font-bold mb-2">Welcome, {agent.name}</h1>
-                        <p className="text-muted-foreground">Here's your delivery overview</p>
-                    </div>
-                )}
+        <>
+            {/* Welcome Header */}
+            {agent && (
+                <div className="mb-8 animate-fade-in">
+                    <h1 className="text-4xl font-bold mb-2">Welcome, {agent.name}</h1>
+                    <p className="text-muted-foreground">Here's your delivery overview</p>
+                </div>
+            )}
 
-                {/* Circular Statistics Graphs */}
-                {agent?.stats && (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12 animate-fade-in">
-                        <div className="card flex items-center justify-center py-8">
-                            <CircularProgress
-                                value={agent.stats.totalAccepted}
-                                max={agent.stats.totalAccepted + 10}
-                                label="Orders Accepted"
-                                color="#3b82f6"
-                                size={140}
-                                icon={CheckCircle}
-                            />
-                        </div>
-                        <div className="card flex items-center justify-center py-8">
-                            <CircularProgress
-                                value={agent.stats.totalDelivered}
-                                max={agent.stats.totalAccepted}
-                                label="Orders Delivered"
-                                color="#22c55e"
-                                size={140}
-                                icon={Truck}
-                            />
-                        </div>
-                        <div className="card flex items-center justify-center py-8">
-                            <CircularProgress
-                                value={agent.stats.ignoredCount || 0}
-                                max={agent.stats.totalAccepted + (agent.stats.ignoredCount || 0)}
-                                label="Orders Ignored"
-                                color="#f59e0b"
-                                size={140}
-                                icon={XCircle}
-                            />
-                        </div>
+            {/* Circular Statistics Graphs */}
+            {agent?.stats && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12 animate-fade-in">
+                    <div className="card flex items-center justify-center py-8">
+                        <CircularProgress
+                            value={agent.stats.totalAccepted}
+                            max={agent.stats.totalAccepted + 10}
+                            label="Orders Accepted"
+                            color="#3b82f6"
+                            size={140}
+                            icon={CheckCircle}
+                        />
                     </div>
-                )}
+                    <div className="card flex items-center justify-center py-8">
+                        <CircularProgress
+                            value={agent.stats.totalDelivered}
+                            max={agent.stats.totalAccepted}
+                            label="Orders Delivered"
+                            color="#22c55e"
+                            size={140}
+                            icon={Truck}
+                        />
+                    </div>
+                    <div className="card flex items-center justify-center py-8">
+                        <CircularProgress
+                            value={agent.stats.ignoredCount || 0}
+                            max={agent.stats.totalAccepted + (agent.stats.ignoredCount || 0)}
+                            label="Orders Ignored"
+                            color="#f59e0b"
+                            size={140}
+                            icon={XCircle}
+                        />
+                    </div>
+                </div>
+            )}
 
-                {/* Incomplete Orders Section */}
-                {incompleteOrders.length > 0 && (
-                    <div className="mb-8">
-                        <div className="flex justify-between items-center mb-4">
-                            <h2 className="text-2xl font-semibold">Incomplete Orders</h2>
-                            <Link href="/delivery/accepted" className="text-primary hover:underline text-sm font-medium">
-                                View All
-                            </Link>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in">
-                            {incompleteOrders.map((order) => (
-                                <OrderCard key={order.id} order={order} showCompleteButton />
-                            ))}
-                        </div>
+            {/* Incomplete Orders Section */}
+            {incompleteOrders.length > 0 && (
+                <div className="mb-8">
+                    <div className="flex justify-between items-center mb-4">
+                        <h2 className="text-2xl font-semibold">Incomplete Orders</h2>
+                        <Link href="/delivery/accepted" className="text-primary hover:underline text-sm font-medium">
+                            View All
+                        </Link>
                     </div>
-                )}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in">
+                        {incompleteOrders.map((order) => (
+                            <OrderCard key={order.id} order={order} showCompleteButton />
+                        ))}
+                    </div>
+                </div>
+            )}
 
-                {/* Available Orders Section - Show only 2-3 */}
-                {orders.length > 0 && (
-                    <div className="mb-4">
-                        <div className="flex justify-between items-center mb-4">
-                            <h2 className="text-2xl font-semibold">Available Orders</h2>
-                            <Link href="/delivery/orders" className="text-primary hover:underline text-sm font-medium">
-                                View All ({orders.length})
-                            </Link>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in">
-                            {orders.slice(0, 3).map((order) => (
-                                <OrderCard key={order.id} order={order} />
-                            ))}
-                        </div>
+            {/* Available Orders Section - Show only 2-3 */}
+            {orders.length > 0 && (
+                <div className="mb-4">
+                    <div className="flex justify-between items-center mb-4">
+                        <h2 className="text-2xl font-semibold">Available Orders</h2>
+                        <Link href="/delivery/orders" className="text-primary hover:underline text-sm font-medium">
+                            View All ({orders.length})
+                        </Link>
                     </div>
-                )}
-            </div>
-        </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in">
+                        {orders.slice(0, 3).map((order) => (
+                            <OrderCard key={order.id} order={order} />
+                        ))}
+                    </div>
+                </div>
+            )}
+        </>
     );
 }

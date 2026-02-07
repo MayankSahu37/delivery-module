@@ -1,7 +1,7 @@
 
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
-import { requireDeliverySession } from '@/lib/auth';
+import { getKindeServerSession } from '@kinde-oss/kinde-auth-nextjs/server';
 
 export async function GET(
     request: Request,
@@ -9,7 +9,33 @@ export async function GET(
 ) {
     const { orderId } = await params;
     try {
-        await requireDeliverySession();
+        const { getUser } = getKindeServerSession();
+        const user = await getUser();
+
+        if (!user) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        const { data: agent } = await supabase
+            .from('delivery_agents')
+            .select('id')
+            .eq('auth_id', user.id)
+            .single();
+
+        if (!agent) {
+            return NextResponse.json({ error: 'Agent profile not found' }, { status: 403 });
+        }
+
+        // agentId is available if needed, but RLS might handle it? 
+        // Actually this route just gets order details, so we just check access.
+        // But some logic might rely on agentId later? No, this just fetches order.
+        // Wait, does it check if order is assigned to agent? 
+        // The original code `await requireDeliverySession()` just returned agentId but it wasn't used for filtering 
+        // in the query: .eq('id', orderId).single()
+        // So any logged in agent can view any order?
+        // The implementation summary says "Order Details Page... Detailed view of individual orders".
+        // It seems open to any agent.
+
 
         if (!orderId) {
             return NextResponse.json({ error: 'Order ID required' }, { status: 400 });

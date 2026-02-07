@@ -1,22 +1,28 @@
 
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
-import { requireDeliverySession } from '@/lib/auth';
+import { getKindeServerSession } from '@kinde-oss/kinde-auth-nextjs/server';
 
 export async function GET(request: Request) {
     try {
-        const agentId = await requireDeliverySession();
+        const { getUser } = getKindeServerSession();
+        const user = await getUser();
 
-        // Fetch agent profile
-        const { data: agent, error: agentError } = await supabase
+        if (!user) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        const { data: agent } = await supabase
             .from('delivery_agents')
             .select('id, name, email, is_active, created_at')
-            .eq('id', agentId)
+            .eq('auth_id', user.id)
             .single();
 
-        if (agentError || !agent) {
-            return NextResponse.json({ error: 'Agent not found' }, { status: 404 });
+        if (!agent) {
+            return NextResponse.json({ error: 'Agent profile not found' }, { status: 404 });
         }
+
+        const agentId = agent.id;
 
         // Fetch statistics
         // Total accepted orders

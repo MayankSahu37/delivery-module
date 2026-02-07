@@ -1,19 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession } from '@/lib/auth';
+import { getKindeServerSession } from '@kinde-oss/kinde-auth-nextjs/server';
 import { supabase } from '@/lib/supabase';
 
 export async function GET(request: NextRequest) {
     try {
-        const session = await getSession();
-        if (!session?.agentId) {
+        const { getUser } = getKindeServerSession();
+        const user = await getUser();
+
+        if (!user) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        // Get delivery agent ID from auth_id
+        const { data: agent } = await supabase
+            .from('delivery_agents')
+            .select('id')
+            .eq('auth_id', user.id)
+            .single();
+
+        if (!agent) {
+            return NextResponse.json({ error: 'Agent profile not found' }, { status: 403 });
         }
 
         // Get all delivered orders for this agent
         const { data: assignments, error: assignmentError } = await supabase
             .from('order_delivery_assignments')
             .select('order_id, assigned_at')
-            .eq('delivery_boy_id', session.agentId);
+            .eq('delivery_boy_id', agent.id);
 
         if (assignmentError) throw assignmentError;
 

@@ -1,31 +1,20 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import { 
-    LayoutDashboard, 
-    Package, 
-    CheckCircle, 
-    Truck, 
-    XCircle, 
-    User, 
-    LogOut 
+import { usePathname } from 'next/navigation';
+import {
+    LayoutDashboard,
+    Package,
+    CheckCircle,
+    Truck,
+    XCircle,
+    User,
+    LogOut
 } from 'lucide-react';
+import { LogoutLink } from '@kinde-oss/kinde-auth-nextjs/components';
 
 export default function Sidebar() {
     const pathname = usePathname();
-    const router = useRouter();
-
-    const handleLogout = async () => {
-        if (!confirm('Are you sure you want to logout?')) return;
-
-        try {
-            await fetch('/api/delivery/logout', { method: 'POST' });
-            router.push('/delivery/login');
-        } catch (err) {
-            console.error('Logout error:', err);
-        }
-    };
 
     const navItems = [
         { href: '/delivery/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -46,7 +35,7 @@ export default function Sidebar() {
                 {navItems.map((item) => {
                     const Icon = item.icon;
                     const isActive = pathname === item.href;
-                    
+
                     return (
                         <Link
                             key={item.href}
@@ -61,10 +50,10 @@ export default function Sidebar() {
             </nav>
 
             <div className="sidebar-footer">
-                <button onClick={handleLogout} className="sidebar-link logout-btn">
+                <LogoutLink className="sidebar-link logout-btn">
                     <LogOut className="w-5 h-5" />
                     <span>Logout</span>
-                </button>
+                </LogoutLink>
             </div>
         </aside>
     );
