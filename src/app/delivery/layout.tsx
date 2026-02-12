@@ -19,20 +19,32 @@ export default async function DeliveryLayout({
 
     const user = await getUser();
 
-    // Verify user exists in database
+    // First check the users table for role verification
     const { data: dbUser } = await supabase
+        .from('users')
+        .select('uid, role, is_active')
+        .eq('auth_id', user?.id)
+        .maybeSingle();
+
+    // If user exists in users table but role is not delivery_boy → unauthorized
+    if (dbUser && dbUser.role !== 'delivery_boy') {
+        redirect('/unauthorized');
+    }
+
+    // Verify user exists in delivery_agents table
+    const { data: deliveryAgent } = await supabase
         .from('delivery_agents')
         .select('id, is_active')
         .eq('auth_id', user?.id)
         .maybeSingle();
 
-    // Check if user exists
-    if (!dbUser) {
+    // Check if delivery agent record exists
+    if (!deliveryAgent) {
         redirect('/unauthorized');
     }
 
     // Check if account is active
-    if (!dbUser.is_active) {
+    if (!deliveryAgent.is_active) {
         redirect('/account-suspended');
     }
 

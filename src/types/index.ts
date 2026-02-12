@@ -25,6 +25,11 @@ export interface DeliveryAgent {
   id: string;
   name: string;
   email: string;
+  phone: string | null;
+  age: number | null;
+  address: string | null;
+  vehicle_number: string | null;
+  profile_image_url: string | null;
   is_active: boolean;
   created_at: string;
   stats?: AgentStats;

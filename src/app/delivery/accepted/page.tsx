@@ -39,6 +39,11 @@ export default function AcceptedOrdersPage() {
         }
     };
 
+    const handleOrderIgnored = (orderId: string) => {
+        // Remove the ignored order from the list without full reload
+        setOrders(prev => prev.filter(o => o.id !== orderId));
+    };
+
     if (loading) {
         return (
             <div className="container min-h-screen py-8 flex items-center justify-center">
@@ -51,9 +56,9 @@ export default function AcceptedOrdersPage() {
         <div className="min-h-screen bg-muted/10">
             <div className="container py-8">
                 <div className="mb-8">
-                    <h1 className="text-4xl font-bold mb-2">Accepted Orders</h1>
+                    <h1 className="text-4xl font-bold mb-2">Assigned Orders</h1>
                     <p className="text-muted-foreground">
-                        Orders you've accepted and need to deliver
+                        Orders assigned to you by the admin. You can complete or ignore them.
                     </p>
                 </div>
 
@@ -68,15 +73,21 @@ export default function AcceptedOrdersPage() {
                         <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted mb-4">
                             <Package className="w-8 h-8 text-muted-foreground" />
                         </div>
-                        <h2 className="text-2xl font-semibold mb-2">No Accepted Orders</h2>
+                        <h2 className="text-2xl font-semibold mb-2">No Assigned Orders</h2>
                         <p className="text-muted-foreground mb-6">
-                            You don't have any pending deliveries at the moment.
+                            You don't have any assigned deliveries at the moment.
                         </p>
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in">
                         {orders.map((order) => (
-                            <OrderCard key={order.id} order={order} showCompleteButton />
+                            <OrderCard
+                                key={order.id}
+                                order={order}
+                                showCompleteButton
+                                showIgnoreButton
+                                onIgnored={handleOrderIgnored}
+                            />
                         ))}
                     </div>
                 )}

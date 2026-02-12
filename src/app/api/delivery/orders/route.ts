@@ -35,12 +35,18 @@ export async function GET(request: Request) {
 
         const ignoredOrderIds = ignoredData?.map(row => row.order_id) || [];
 
-        // 2. Main Query
-        // Note: Supabase JS doesn't support complex "NOT IN" or "LEFT JOIN IS NULL" efficiently in one go without raw SQL or RPC depending on structure.
-        // However, since we define 'PENDING_DELIVERY' as the status for unassigned orders, we mainly just rely on the status column.
-        // If 'ACCEPTED_FOR_DELIVERY' sets the status, we just filter by status='PENDING_DELIVERY'.
-        // Then we filter out the ignored ones.
+        // 2. Get IDs of orders already assigned to this agent
+        const { data: assignedData } = await supabase
+            .from('order_delivery_assignments')
+            .select('order_id')
+            .eq('delivery_boy_id', agentId);
 
+        const assignedOrderIds = assignedData?.map(row => row.order_id) || [];
+
+        // Combine excluded IDs (ignored + already assigned)
+        const excludedIds = [...new Set([...ignoredOrderIds, ...assignedOrderIds])];
+
+        // 3. Main Query — fetch available orders
         let query = supabase
             .from('orders')
             .select(`
@@ -53,13 +59,11 @@ export async function GET(request: Request) {
            quantity
         )
       `)
-            .eq('status', 'paid')
+            .in('status', ['pending', 'paid', 'PENDING_DELIVERY'])
             .order('created_at', { ascending: false });
 
-        if (ignoredOrderIds.length > 0) {
-            // filter out orders that are in the ignored list
-            // .not('id', 'in', `(${ignoredOrderIds.join(',')})`) // Supabase syntax for NOT IN is .not.in() is not standard, it's .not('id', 'in', list)
-            query = query.not('id', 'in', `(${ignoredOrderIds.join(',')})`);
+        if (excludedIds.length > 0) {
+            query = query.not('id', 'in', `(${excludedIds.join(',')})`);
         }
 
         const { data: orders, error } = await query;

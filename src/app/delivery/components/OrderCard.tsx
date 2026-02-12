@@ -4,15 +4,18 @@ import { Order } from '@/types';
 import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, XCircle } from 'lucide-react';
 
 interface OrderCardProps {
     order: Order & { total_items: number };
     showCompleteButton?: boolean;
+    showIgnoreButton?: boolean;
+    onIgnored?: (orderId: string) => void;
 }
 
-export default function OrderCard({ order, showCompleteButton = false }: OrderCardProps) {
+export default function OrderCard({ order, showCompleteButton = false, showIgnoreButton = false, onIgnored }: OrderCardProps) {
     const [loading, setLoading] = useState(false);
+    const [ignoring, setIgnoring] = useState(false);
     const router = useRouter();
 
     const handleMarkComplete = async (e: React.MouseEvent) => {
@@ -34,10 +37,41 @@ export default function OrderCard({ order, showCompleteButton = false }: OrderCa
 
             alert('Order marked as delivered!');
             router.refresh();
+            window.location.reload();
         } catch (err: any) {
             alert(err.message);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleIgnore = async (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (!confirm('Ignore this assigned order? It will be moved to your ignored list.')) return;
+
+        setIgnoring(true);
+        try {
+            const res = await fetch(`/api/delivery/orders/${order.id}/ignore`, {
+                method: 'POST'
+            });
+
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || 'Failed to ignore order');
+            }
+
+            if (onIgnored) {
+                onIgnored(order.id);
+            } else {
+                router.refresh();
+                window.location.reload();
+            }
+        } catch (err: any) {
+            alert(err.message);
+        } finally {
+            setIgnoring(false);
         }
     };
 
@@ -65,16 +99,29 @@ export default function OrderCard({ order, showCompleteButton = false }: OrderCa
                     </div>
                 </div>
 
-                {showCompleteButton ? (
-                    <div className="mt-4 pt-3 border-t border-border">
-                        <button
-                            onClick={handleMarkComplete}
-                            disabled={loading}
-                            className="btn btn-primary w-full flex items-center justify-center gap-2"
-                        >
-                            <CheckCircle className="w-4 h-4" />
-                            {loading ? 'Processing...' : 'Mark as Complete'}
-                        </button>
+                {(showCompleteButton || showIgnoreButton) ? (
+                    <div className="mt-4 pt-3 border-t border-border flex gap-2">
+                        {showCompleteButton && (
+                            <button
+                                onClick={handleMarkComplete}
+                                disabled={loading}
+                                className="btn btn-primary flex-1 flex items-center justify-center gap-2"
+                            >
+                                <CheckCircle className="w-4 h-4" />
+                                {loading ? 'Processing...' : 'Complete'}
+                            </button>
+                        )}
+                        {showIgnoreButton && (
+                            <button
+                                onClick={handleIgnore}
+                                disabled={ignoring}
+                                className="btn btn-outline flex-1 flex items-center justify-center gap-2"
+                                style={{ borderColor: '#f59e0b', color: '#f59e0b' }}
+                            >
+                                <XCircle className="w-4 h-4" />
+                                {ignoring ? 'Ignoring...' : 'Ignore'}
+                            </button>
+                        )}
                     </div>
                 ) : (
                     <div className="mt-4 pt-3 border-t border-border text-xs text-muted-foreground flex justify-between items-center">

@@ -25,6 +25,9 @@ export default function AuthSync() {
                         // Force hard navigation to dashboard to re-trigger layout checks
                         window.location.href = '/delivery/dashboard';
                     }
+                } else if (data.unauthorized) {
+                    // User has a different role — redirect to unauthorized page
+                    window.location.href = '/unauthorized';
                 } else {
                     console.error('Sync failed:', data.error);
                 }
